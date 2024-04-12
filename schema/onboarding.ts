@@ -164,17 +164,54 @@ const onboardingResolver = async (_: any, args: any, context: any) => {
     throw new InvalidInputError('User not found', 'user');
   }
 
-  const employee = await Employee.findOne({ user: context.userId });
-  if (employee) {
-    throw new InvalidInputError('Employee already exists', 'user');
-  }
-
   let documents = [];
   if (args.data.avatar || args.data.avatar !== '') {
     documents.push({ file: args.data.avatar, type: 'avatar' });
   }
   if (args.data.optReceipt || args.data.optReceipt !== '') {
     documents.push({ file: args.data.optReceipt, type: 'receipt' });
+  }
+
+  const employee = await Employee.findOne({ user: context.userId });
+  if (employee) {
+    const newEmployee = {
+      firstName: args.data.firstName,
+      lastName: args.data.lastName,
+      middleName: args.data.middleName,
+      preferredName: args.data.preferredName,
+      streetAddress: args.data.streetAddress,
+      apartment: args.data.apartment,
+      city: args.data.city,
+      state: args.data.state,
+      zip: args.data.zip,
+      email: args.data.email,
+      cellPhone: args.data.cellPhone,
+      ssn: args.data.ssn,
+      dateOfBirth: args.data.dateOfBirth,
+      gender: args.data.gender,
+      citizenship: args.data.citizenship == 'yes' ? args.data.identity : 'visa',
+      visaType:
+        args.data.visa === 'other' ? args.data.visaType : args.data.visa,
+      visaStartDate: args.data.startDate,
+      visaEndDate: args.data.endDate,
+      referralFirstName: args.data.referralFirstName,
+      referralMiddleName: args.data.referralMiddleName,
+      referralLastName: args.data.referralLastName,
+      referralEmail: args.data.referralEmail,
+      referralPhone: args.data.referralPhone,
+      referralRelationship: args.data.referralRelationship,
+      emergencyContacts: args.data.emergencyContacts,
+      documents: documents,
+    };
+    await employee.updateOne(newEmployee);
+    user.status = 'pending';
+    await user.save();
+    return {
+      api: 'onboarding',
+      type: 'mutation',
+      status: user.status,
+      message: 'employee information updated',
+    };
   }
 
   const newEmployee = new Employee({
@@ -214,7 +251,7 @@ const onboardingResolver = async (_: any, args: any, context: any) => {
   return {
     api: 'onboarding',
     type: 'mutation',
-    status: 'success',
+    status: user.status,
     message: 'Employee onboarded successfully',
   };
 };
